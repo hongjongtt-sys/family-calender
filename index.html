@@ -267,6 +267,8 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:0
       <span class="cal-month-label" id="calMonthLabel"></span>
       <button onclick="changeMonth(1)">›</button>
       <button onclick="goToday()" style="margin-left:4px">오늘</button>
+      <button class="icon-btn" onclick="openJumpDate()" title="날짜로 바로 이동" style="margin-left:2px">📅</button>
+      <input type="date" id="jumpDatePicker" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none" onchange="jumpToDate(this.value)">
     </div>
     <button class="btn btn-primary" onclick="openEventModal(window.selectedDate)">+ 일정 추가</button>
   </div>
@@ -866,6 +868,16 @@ window.goToday = function(){
   window.calDate=new Date();
   window.selectedDate=getTodayStr();
   renderCalendar();
+};
+window.openJumpDate = function(){
+  const el=document.getElementById('jumpDatePicker');
+  el.value = window.selectedDate || getTodayStr();
+  if(el.showPicker){ try{ el.showPicker(); return; }catch(e){} }
+  el.click();
+};
+window.jumpToDate = function(v){
+  if(!v) return;
+  selectDate(v);
 };
 function renderCalendar(){
   const el=document.getElementById('calGrid'); if(!el) return;

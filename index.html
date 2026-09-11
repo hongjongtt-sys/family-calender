@@ -397,7 +397,7 @@ const LOGIN_EMAIL = "hjjyyhyj@family.com";
 const MEMBER_COL = "familyMembers";
 const EVENT_COL = "familyEvents";
 const SHOP_COL = "shoppingItems";
-const LINK_COL = "quickLinks";
+const LINK_COL = "familyQuickLinks";
 const CFG_COL = "familyConfig";
 const PRESET_COLORS = ['#2563eb','#dc2626','#16a34a','#d97706','#7c3aed','#0891b2','#db2777','#65a30d'];
 
@@ -429,9 +429,12 @@ window.closeOutside = function(e, id, fn){ if(e.target===document.getElementById
 let appStarted=false;
 setPersistence(auth, browserLocalPersistence).catch(()=>{});
 onAuthStateChanged(auth, user=>{
-  if(user){
+  if(user && user.email===LOGIN_EMAIL){
     document.getElementById('loginScreen').style.display='none';
     if(!appStarted){ appStarted=true; startApp(); }
+  } else if(user){
+    // 다른 계정(예: WorkFlow)으로 이미 로그인된 상태 — 가족 캘린더 전용 계정이 아니므로 로그아웃 후 다시 로그인 요구
+    signOut(auth).catch(()=>{});
   } else {
     document.getElementById('loadingScreen').style.display='none';
     document.getElementById('loginScreen').style.display='flex';
@@ -546,7 +549,7 @@ function maybeAskWho(){
 window.openWhoModal = function(){
   const list=document.getElementById('whoList');
   const closeBtn=document.getElementById('whoCloseBtn');
-  closeBtn.style.display = window.currentMember?'flex':'none';
+  closeBtn.style.display='flex';
   if(!window.members.length){
     list.innerHTML=`<div class="empty"><div class="empty-icon">👨‍👩‍👧‍👦</div><p>등록된 가족 구성원이 없습니다<br>⚙ 버튼으로 먼저 추가해주세요</p></div>`;
   } else {
@@ -557,7 +560,6 @@ window.openWhoModal = function(){
   document.getElementById('whoOverlay').classList.add('open');
 };
 window.closeWhoModal = function(){
-  if(!window.currentMember) return; // 최초 선택 전에는 닫기 불가
   document.getElementById('whoOverlay').classList.remove('open');
 };
 window.pickWho = function(id){

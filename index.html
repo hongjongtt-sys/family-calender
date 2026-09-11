@@ -125,6 +125,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:0
 .empty p{font-size:12.5px}
 
 .upc-item{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:9px;margin-bottom:6px;cursor:pointer;transition:all .15s}
+#upcomingBody{max-height:200px;overflow-y:auto;padding-right:2px}
 .upc-item:hover{background:var(--surface2)}
 .upc-item:last-child{margin-bottom:0}
 .upc-date{font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-light);border-radius:7px;padding:5px 8px;text-align:center;min-width:44px;flex-shrink:0}
@@ -877,7 +878,10 @@ window.openJumpDate = function(){
 };
 window.jumpToDate = function(v){
   if(!v) return;
-  selectDate(v);
+  const [y,m]=v.split('-').map(Number);
+  window.calDate=new Date(y,m-1,1);
+  window.selectedDate=v;
+  renderCalendar();
 };
 function renderCalendar(){
   const el=document.getElementById('calGrid'); if(!el) return;

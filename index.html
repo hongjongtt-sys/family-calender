@@ -184,6 +184,9 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:0
 .toggle-row{margin-bottom:14px}
 .toggle-item{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;cursor:pointer}
 .toggle-item input{width:17px;height:17px;cursor:pointer;flex-shrink:0}
+.time-pick{display:flex;align-items:center;gap:6px}
+.time-pick select{flex:1;text-align:center;font-variant-numeric:tabular-nums}
+.time-pick span{color:var(--text-dim);font-weight:600}
 .cal-lunar{font-size:8.5px;color:var(--text-dim);font-weight:500}
 .cal-lunar.new-moon{color:var(--accent);font-weight:700}
 .evt-lunar-tag{font-size:10.5px;color:var(--accent);background:var(--accent-light);border-radius:8px;padding:1px 7px}
@@ -362,8 +365,12 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:0
       <label class="toggle-item"><input type="checkbox" id="fAllday" checked onchange="toggleAllday()"> 종일</label>
     </div>
     <div class="form-row" id="timeRow" style="display:none">
-      <div class="form-group"><label class="form-label">시작 시간</label><input type="time" class="form-input" id="fStartTime"></div>
-      <div class="form-group"><label class="form-label">종료 시간</label><input type="time" class="form-input" id="fEndTime"></div>
+      <div class="form-group"><label class="form-label">시작 시간</label>
+        <div class="time-pick"><select class="form-select" id="fStartTimeH"></select><span>:</span><select class="form-select" id="fStartTimeM"></select></div>
+      </div>
+      <div class="form-group"><label class="form-label">종료 시간</label>
+        <div class="time-pick"><select class="form-select" id="fEndTimeH"></select><span>:</span><select class="form-select" id="fEndTimeM"></select></div>
+      </div>
     </div>
 
     <div class="form-row">
@@ -810,6 +817,28 @@ window.toggleAllday = function(){
   const on=document.getElementById('fAllday').checked;
   document.getElementById('timeRow').style.display=on?'none':'grid';
 };
+function populateTimeSelects(){
+  const hEl=['fStartTimeH','fEndTimeH'], mEl=['fStartTimeM','fEndTimeM'];
+  hEl.forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el.options.length) el.innerHTML=Array.from({length:24},(_,h)=>`<option value="${pad2(h)}">${pad2(h)}시</option>`).join('');
+  });
+  mEl.forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el.options.length) el.innerHTML=Array.from({length:12},(_,i)=>i*5).map(m=>`<option value="${pad2(m)}">${pad2(m)}분</option>`).join('');
+  });
+}
+function setTimeSelect(prefix, hhmm){
+  const [h,m] = (hhmm||'09:00').split(':');
+  document.getElementById(prefix+'H').value = h||'09';
+  const mEl=document.getElementById(prefix+'M');
+  // 5분 단위가 아닌 값이 저장돼 있으면 가장 가까운 5분 단위로 보정
+  const rounded = pad2(Math.round(parseInt(m||'0')/5)*5 % 60);
+  mEl.value = Array.from(mEl.options).some(o=>o.value===m) ? m : rounded;
+}
+function getTimeSelect(prefix){
+  return `${document.getElementById(prefix+'H').value}:${document.getElementById(prefix+'M').value}`;
+}
 window.toggleRepeat = function(){
   const rep=document.getElementById('fRepeat').value;
   const note=document.getElementById('repeatNote');
@@ -889,8 +918,9 @@ window.openEventModal = function(dateStr){
   document.getElementById('fStart').value=d;
   document.getElementById('fEnd').value=d;
   document.getElementById('fAllday').checked=true;
-  document.getElementById('fStartTime').value='';
-  document.getElementById('fEndTime').value='';
+  populateTimeSelects();
+  setTimeSelect('fStartTime','09:00');
+  setTimeSelect('fEndTime','10:00');
   document.getElementById('fLunar').checked=false;
   document.getElementById('fLunarLeap').checked=false;
   document.getElementById('fRepeat').value='none';
@@ -912,8 +942,9 @@ window.editEvent = function(id){
   document.getElementById('fStart').value=ev.start||'';
   document.getElementById('fEnd').value=ev.end||ev.start||'';
   document.getElementById('fAllday').checked=ev.allDay!==false;
-  document.getElementById('fStartTime').value=ev.startTime||'';
-  document.getElementById('fEndTime').value=ev.endTime||'';
+  populateTimeSelects();
+  setTimeSelect('fStartTime', ev.startTime||'09:00');
+  setTimeSelect('fEndTime', ev.endTime||'10:00');
   document.getElementById('fRepeat').value=ev.repeat||'none';
   document.getElementById('fLocation').value=ev.location||'';
   document.getElementById('fDday').checked=!!ev.isDday;
@@ -959,8 +990,8 @@ window.saveEvent = async function(){
   const allDay=document.getElementById('fAllday').checked;
   const data={
     title, start, end, allDay, repeat,
-    startTime: allDay?'':document.getElementById('fStartTime').value,
-    endTime: allDay?'':document.getElementById('fEndTime').value,
+    startTime: allDay?'':getTimeSelect('fStartTime'),
+    endTime: allDay?'':getTimeSelect('fEndTime'),
     location: document.getElementById('fLocation').value.trim(),
     isDday: document.getElementById('fDday').checked,
     memberIds:[...window.pickedMemberIds],

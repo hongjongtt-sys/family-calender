@@ -351,7 +351,7 @@ header{background:rgba(255,255,255,.82);backdrop-filter:blur(10px);-webkit-backd
     </div>
     <div id="dayModalBody" style="margin-bottom:14px"></div>
     <div style="display:flex;gap:8px">
-      <button class="btn btn-ghost" style="flex-shrink:0" onclick="openHolidayModal()">🎌 공휴일 설정</button>
+      <button class="btn btn-ghost" style="flex-shrink:0" onclick="openHolidayModal()">🏷️ 공휴일 설정</button>
       <button class="btn btn-primary" style="flex:1" onclick="openEventModal(window.dayModalDate)">+ 일정 추가</button>
     </div>
   </div>
@@ -769,7 +769,7 @@ window.saveHolidayName = async function(){
   if(!name){ toast('이름을 입력하세요', true); return; }
   try{
     await setDoc(doc(db,HOLIDAY_COL,dateStr), {name});
-    toast('🎌 저장되었습니다');
+    toast('🏷️ 저장되었습니다');
     closeHolidayModal();
   }catch(e){ toast('저장 실패: '+e.message, true); }
 };

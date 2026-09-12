@@ -71,35 +71,6 @@ header{background:rgba(255,255,255,.82);backdrop-filter:blur(10px);-webkit-backd
 
 .wrap{max-width:980px;margin:0 auto;padding:20px 16px 60px}
 
-/* ── HERO (오늘 요약, 워크플로 홈 스타일 글로우) ─────── */
-.hero{
-  position:relative;overflow:hidden;border-radius:20px;padding:26px 24px;margin-bottom:20px;
-  background:#0b0d12;color:#e9edf5;
-  box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 14px 34px rgba(0,0,0,.30);
-}
-.hero::before{
-  content:'';position:absolute;inset:0;pointer-events:none;
-  background:
-    radial-gradient(620px 340px at 10% -14%, rgba(111,157,255,.42), transparent 65%),
-    radial-gradient(480px 300px at 100% -6%, rgba(72,217,164,.24), transparent 62%),
-    radial-gradient(640px 360px at 62% 118%, rgba(155,124,255,.30), transparent 66%);
-}
-.hero>*{position:relative}
-.hero-date{font-family:'Instrument Serif',serif;font-size:clamp(26px,4.4vw,36px);letter-spacing:-.5px;
-  text-shadow:0 0 14px rgba(180,205,255,.6),0 0 34px rgba(111,157,255,.32)}
-.hero-weekday{font-size:12.5px;color:#9aa3b2;margin-top:3px;letter-spacing:.02em}
-.hero-next{margin-top:14px;font-size:13.5px;color:#c6d2e6;min-height:19px}
-.hero-next b{color:#9ec0ff;font-weight:700;text-shadow:0 0 12px rgba(111,157,255,.65),0 0 26px rgba(111,157,255,.3)}
-.hero-actions{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
-.hero-btn{
-  display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:20px;
-  font-size:12.5px;font-weight:600;font-family:'Pretendard',sans-serif;cursor:pointer;
-  background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.13);color:#e9edf5;
-  transition:all .15s;
-}
-.hero-btn:hover{border-color:rgba(111,157,255,.55);background:rgba(111,157,255,.14);
-  box-shadow:0 0 20px rgba(111,157,255,.25)}
-.hero-btn span{font-size:13px}
 .app-grid{display:grid;grid-template-columns:1fr 240px;gap:20px;align-items:start}
 .main-col{min-width:0}
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px}
@@ -175,11 +146,12 @@ header{background:rgba(255,255,255,.82);backdrop-filter:blur(10px);-webkit-backd
 .upc-title{font-size:13px;font-weight:500;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* SHOPPING LIST */
-.shop-item{display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid var(--border)}
+.shop-item{display:flex;align-items:center;gap:10px;padding:9px 6px;border-bottom:1px solid var(--border);border-radius:8px;transition:background .15s}
+.shop-item:hover{background:var(--surface2)}
 .shop-item:last-child{border-bottom:none}
-.shop-check{width:20px;height:20px;flex-shrink:0;border-radius:50%;border:2px solid var(--border2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;color:transparent;background:#fff;transition:all .12s}
+.shop-check{width:21px;height:21px;flex-shrink:0;border-radius:50%;border:2px solid var(--border2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;color:transparent;background:#fff;transition:all .15s}
 .shop-check:hover{border-color:var(--accent)}
-.shop-check.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.shop-check.on{background:linear-gradient(135deg,#3b7bff,#1d4ed8);border-color:transparent;color:#fff;box-shadow:0 2px 8px rgba(37,99,235,.35)}
 .shop-name{flex:1;font-size:13.5px}
 .shop-name.done{text-decoration:line-through;color:var(--text-dim)}
 .shop-del{background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:13px;padding:2px 4px;flex-shrink:0}
@@ -187,15 +159,16 @@ header{background:rgba(255,255,255,.82);backdrop-filter:blur(10px);-webkit-backd
 
 /* MEMO BLOCK (자유 메모) */
 .blk-empty{padding:10px 4px;color:var(--text-dim);font-size:13px;cursor:text;min-height:44px}
-.blk-view{font-size:13.5px;line-height:1.75;cursor:text}
+.blk-view{font-size:13.5px;line-height:1.8;cursor:text}
 .plain-line{white-space:pre-wrap;word-break:break-word;min-height:22px}
-.chk-line{display:flex;align-items:flex-start;gap:8px;padding:1px 0;min-height:24px}
-.chk-box{flex-shrink:0;width:18px;height:18px;margin-top:2px;border:2px solid var(--border2);border-radius:5px;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:transparent;transition:all .12s}
+.chk-line{display:flex;align-items:flex-start;gap:8px;padding:3px 6px;min-height:24px;border-radius:7px;transition:background .12s}
+.chk-line:hover{background:var(--surface2)}
+.chk-box{flex-shrink:0;width:18px;height:18px;margin-top:2px;border:2px solid var(--border2);border-radius:5px;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:transparent;transition:all .15s}
 .chk-box:hover{border-color:var(--accent)}
-.chk-box.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.chk-box.on{background:linear-gradient(135deg,#3b7bff,#1d4ed8);border-color:transparent;color:#fff;box-shadow:0 2px 8px rgba(37,99,235,.35)}
 .chk-text{flex:1;white-space:pre-wrap;word-break:break-word}
 .chk-line.done .chk-text{text-decoration:line-through;color:var(--text-dim)}
-.memo-textarea{width:100%;min-height:110px;padding:0;font-size:13.5px;line-height:1.75;color:var(--text);background:transparent;border:none;outline:none;resize:vertical;font-family:'Pretendard',sans-serif}
+.memo-textarea{width:100%;min-height:110px;padding:0;font-size:13.5px;line-height:1.8;color:var(--text);background:transparent;border:none;outline:none;resize:vertical;font-family:'Pretendard',sans-serif}
 .memo-edit-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;flex-wrap:wrap}
 .blk-hint{font-size:10.5px;color:var(--text-dim)}
 
@@ -304,16 +277,6 @@ header{background:rgba(255,255,255,.82);backdrop-filter:blur(10px);-webkit-backd
 </header>
 
 <div class="wrap">
-  <div class="hero">
-    <div class="hero-date" id="heroDate"></div>
-    <div class="hero-weekday" id="heroWeekday"></div>
-    <div class="hero-next" id="heroNext"></div>
-    <div class="hero-actions">
-      <button class="hero-btn" onclick="openEventModal(window.selectedDate)"><span>✅</span>오늘 일정 추가</button>
-      <button class="hero-btn" onclick="goToday()"><span>📅</span>오늘로 이동</button>
-      <button class="hero-btn" onclick="focusShopping()"><span>🛒</span>장보기</button>
-    </div>
-  </div>
   <div class="page-header">
     <div class="cal-nav">
       <button onclick="changeMonth(-1)">‹</button>
@@ -1044,34 +1007,6 @@ function upcomingList(){
   withNext.sort((a,b)=>(a.next<b.next?-1:a.next>b.next?1:(b.ev.isDday-a.ev.isDday)));
   return withNext;
 }
-function renderHero(){
-  const dateEl=document.getElementById('heroDate'); if(!dateEl) return;
-  const today=getTodayStr();
-  const [y,m,d]=today.split('-').map(Number);
-  const days=['일','월','화','수','목','금','토'];
-  const wd=new Date(y,m-1,d).getDay();
-  dateEl.textContent=`${m}월 ${d}일`;
-  const lc=lunarOf(today);
-  const hol=holidayName(today);
-  document.getElementById('heroWeekday').textContent=
-    `${days[wd]}요일${hol?' · '+hol:''}${lc?' · 음력 '+lc.month+'.'+lc.day:''}`;
-  const list=upcomingList();
-  const nextEl=document.getElementById('heroNext');
-  if(list.length){
-    const {ev,next}=list[0];
-    const dd=daysUntil(next);
-    const label=dd===0?'오늘':dd===1?'내일':`D-${dd}`;
-    nextEl.innerHTML=`다음 일정 · <b>${esc(ev.title)}</b> · ${label}`;
-  } else {
-    nextEl.textContent='다가오는 일정이 없어요';
-  }
-}
-window.focusShopping = function(){
-  const el=document.getElementById('shopInput'); if(!el) return;
-  el.scrollIntoView({behavior:'smooth', block:'center'});
-  setTimeout(()=>el.focus(), 350);
-};
-setInterval(renderHero, 60000);
 function renderUpcoming(){
   const el=document.getElementById('upcomingBody'); if(!el) return;
   const list=upcomingList().slice(0,8);
@@ -1086,7 +1021,6 @@ function renderUpcoming(){
       <div class="evt-members">${(ev.memberIds||[]).map(id=>`<span class="dot" style="background:${memberColor(id)};width:9px;height:9px"></span>`).join('')}</div>
     </div>`;
   }).join('') : `<div class="empty"><div class="empty-icon">✨</div><p>다가오는 일정이 없습니다</p></div>`;
-  renderHero();
 }
 
 // ── EVENT CRUD ───────────────────────────────────────

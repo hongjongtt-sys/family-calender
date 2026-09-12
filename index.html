@@ -63,6 +63,36 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:0
 .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
 
 .wrap{max-width:980px;margin:0 auto;padding:20px 16px 60px}
+
+/* ── HERO (오늘 요약, 워크플로 홈 스타일 글로우) ─────── */
+.hero{
+  position:relative;overflow:hidden;border-radius:20px;padding:26px 24px;margin-bottom:20px;
+  background:#0b0d12;color:#e9edf5;
+  box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 14px 34px rgba(0,0,0,.30);
+}
+.hero::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:
+    radial-gradient(620px 340px at 10% -14%, rgba(111,157,255,.42), transparent 65%),
+    radial-gradient(480px 300px at 100% -6%, rgba(72,217,164,.24), transparent 62%),
+    radial-gradient(640px 360px at 62% 118%, rgba(155,124,255,.30), transparent 66%);
+}
+.hero>*{position:relative}
+.hero-date{font-family:'Instrument Serif',serif;font-size:clamp(26px,4.4vw,36px);letter-spacing:-.5px;
+  text-shadow:0 0 14px rgba(180,205,255,.6),0 0 34px rgba(111,157,255,.32)}
+.hero-weekday{font-size:12.5px;color:#9aa3b2;margin-top:3px;letter-spacing:.02em}
+.hero-next{margin-top:14px;font-size:13.5px;color:#c6d2e6;min-height:19px}
+.hero-next b{color:#9ec0ff;font-weight:700;text-shadow:0 0 12px rgba(111,157,255,.65),0 0 26px rgba(111,157,255,.3)}
+.hero-actions{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.hero-btn{
+  display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:20px;
+  font-size:12.5px;font-weight:600;font-family:'Pretendard',sans-serif;cursor:pointer;
+  background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.13);color:#e9edf5;
+  transition:all .15s;
+}
+.hero-btn:hover{border-color:rgba(111,157,255,.55);background:rgba(111,157,255,.14);
+  box-shadow:0 0 20px rgba(111,157,255,.25)}
+.hero-btn span{font-size:13px}
 .app-grid{display:grid;grid-template-columns:1fr 240px;gap:20px;align-items:start}
 .main-col{min-width:0}
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px}
@@ -95,7 +125,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:0
 .cal-label:last-child{color:var(--accent)}
 .cal-cell{background:var(--surface);min-height:96px;padding:5px 4px;cursor:pointer;transition:background .15s;position:relative;min-width:0;overflow:hidden}
 .cal-cell:hover{background:var(--accent-light)}
-.cal-cell.today{background:#e8f0fe;box-shadow:inset 0 0 0 2.5px var(--accent);border-radius:4px}
+.cal-cell.today{background:#e8f0fe;box-shadow:inset 0 0 0 2.5px var(--accent),0 0 14px rgba(37,99,235,.28);border-radius:4px}
 .cal-cell.today .cal-date span{background:var(--accent);color:#fff!important;border-radius:5px;padding:1px 6px;font-weight:700}
 .cal-cell.selected{box-shadow:inset 0 0 0 2px var(--text-dim);border-radius:4px}
 .cal-cell.other{opacity:.35}
@@ -196,7 +226,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:0
 .cal-lunar{font-size:8.5px;color:var(--text-dim);font-weight:500}
 .cal-lunar.new-moon{color:var(--accent);font-weight:700}
 .evt-lunar-tag{font-size:10.5px;color:var(--accent);background:var(--accent-light);border-radius:8px;padding:1px 7px}
-.dday-badge{font-size:10.5px;font-weight:700;padding:2px 9px;border-radius:10px;background:#f5f3ff;color:#7c3aed;white-space:nowrap}
+.dday-badge{font-size:10.5px;font-weight:700;padding:2px 9px;border-radius:10px;background:#f5f3ff;color:#7c3aed;white-space:nowrap;box-shadow:0 0 10px rgba(124,58,237,.25)}
 
 /* MEMBER MODAL */
 .mem-row{display:flex;align-items:center;gap:10px;padding:9px 11px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;margin-bottom:6px}
@@ -262,6 +292,16 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:0
 </header>
 
 <div class="wrap">
+  <div class="hero">
+    <div class="hero-date" id="heroDate"></div>
+    <div class="hero-weekday" id="heroWeekday"></div>
+    <div class="hero-next" id="heroNext"></div>
+    <div class="hero-actions">
+      <button class="hero-btn" onclick="openEventModal(getTodayStr())"><span>✅</span>오늘 일정 추가</button>
+      <button class="hero-btn" onclick="goToday()"><span>📅</span>오늘로 이동</button>
+      <button class="hero-btn" onclick="focusShopping()"><span>🛒</span>장보기</button>
+    </div>
+  </div>
   <div class="page-header">
     <div class="cal-nav">
       <button onclick="changeMonth(-1)">‹</button>
@@ -983,15 +1023,46 @@ function renderDayModal(){
 }
 
 // ── UPCOMING ─────────────────────────────────────────
-function renderUpcoming(){
-  const el=document.getElementById('upcomingBody'); if(!el) return;
+function upcomingList(){
   const today=getTodayStr();
   const withNext = window.events
     .filter(ev=>(ev.memberIds||[]).length===0 || (ev.memberIds||[]).some(id=>!window.hiddenMembers.has(id)))
     .map(ev=>({ev, next:nextOccurrence(ev, today)}))
     .filter(x=>x.next);
   withNext.sort((a,b)=>(a.next<b.next?-1:a.next>b.next?1:(b.ev.isDday-a.ev.isDday)));
-  const list=withNext.slice(0,8);
+  return withNext;
+}
+function renderHero(){
+  const dateEl=document.getElementById('heroDate'); if(!dateEl) return;
+  const today=getTodayStr();
+  const [y,m,d]=today.split('-').map(Number);
+  const days=['일','월','화','수','목','금','토'];
+  const wd=new Date(y,m-1,d).getDay();
+  dateEl.textContent=`${m}월 ${d}일`;
+  const lc=lunarOf(today);
+  const hol=holidayName(today);
+  document.getElementById('heroWeekday').textContent=
+    `${days[wd]}요일${hol?' · '+hol:''}${lc?' · 음력 '+lc.month+'.'+lc.day:''}`;
+  const list=upcomingList();
+  const nextEl=document.getElementById('heroNext');
+  if(list.length){
+    const {ev,next}=list[0];
+    const dd=daysUntil(next);
+    const label=dd===0?'오늘':dd===1?'내일':`D-${dd}`;
+    nextEl.innerHTML=`다음 일정 · <b>${esc(ev.title)}</b> · ${label}`;
+  } else {
+    nextEl.textContent='다가오는 일정이 없어요';
+  }
+}
+window.focusShopping = function(){
+  const el=document.getElementById('shopInput'); if(!el) return;
+  el.scrollIntoView({behavior:'smooth', block:'center'});
+  setTimeout(()=>el.focus(), 350);
+};
+setInterval(renderHero, 60000);
+function renderUpcoming(){
+  const el=document.getElementById('upcomingBody'); if(!el) return;
+  const list=upcomingList().slice(0,8);
   el.innerHTML = list.length ? list.map(({ev,next})=>{
     const d=daysUntil(next);
     const [y,m,dd]=next.split('-').map(Number);
@@ -1003,6 +1074,7 @@ function renderUpcoming(){
       <div class="evt-members">${(ev.memberIds||[]).map(id=>`<span class="dot" style="background:${memberColor(id)};width:9px;height:9px"></span>`).join('')}</div>
     </div>`;
   }).join('') : `<div class="empty"><div class="empty-icon">✨</div><p>다가오는 일정이 없습니다</p></div>`;
+  renderHero();
 }
 
 // ── EVENT CRUD ───────────────────────────────────────

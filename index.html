@@ -424,10 +424,14 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:0
       <label class="form-label">반복 종료일 (선택)</label>
       <input type="date" class="form-input" id="fRepeatUntil">
       <div style="font-size:10.5px;color:var(--text-dim);margin-top:5px">비워두면 계속 반복돼요</div>
+    </div>
+    <div class="form-group" id="excludeWrap">
+      <label class="form-label">제외</label>
       <div class="exclude-row">
         <label class="toggle-item" style="font-size:12.5px"><input type="checkbox" id="fExcludeWeekend"> 주말 제외</label>
         <label class="toggle-item" style="font-size:12.5px"><input type="checkbox" id="fExcludeHoliday"> 공휴일 제외</label>
       </div>
+      <div style="font-size:10.5px;color:var(--text-dim);margin-top:6px">여러 날에 걸치는 일정이나 반복 일정에서, 시작일·종료일은 그대로 두고 그 사이 날짜만 걸러요</div>
     </div>
 
     <div class="toggle-row">
@@ -771,8 +775,6 @@ window.resetHoliday = async function(){
 function eventCoversDate(ev, dateStr){
   const rep = ev.repeat||'none';
   if(rep!=='none' && ev.repeatUntil && dateStr>ev.repeatUntil) return false;
-  if(rep!=='none' && ev.excludeWeekend && isWeekend(dateStr)) return false;
-  if(rep!=='none' && ev.excludeHoliday && holidayName(dateStr)) return false;
   if(ev.isLunar && rep==='yearly'){
     if(dateStr<ev.start) return false;
     const lc=lunarOf(dateStr);
@@ -780,8 +782,14 @@ function eventCoversDate(ev, dateStr){
   }
   if(rep==='none'){
     const s=ev.start, e=ev.end||ev.start;
-    return dateStr>=s && dateStr<=e;
+    if(dateStr<s || dateStr>e) return false;
+    if(dateStr===s || dateStr===e) return true; // 시작일·종료일은 항상 표시
+    if(ev.excludeWeekend && isWeekend(dateStr)) return false;
+    if(ev.excludeHoliday && holidayName(dateStr)) return false;
+    return true;
   }
+  if(ev.excludeWeekend && isWeekend(dateStr)) return false;
+  if(ev.excludeHoliday && holidayName(dateStr)) return false;
   if(dateStr<ev.start) return false;
   const [sy,sm,sd]=ev.start.split('-').map(Number);
   const [ty,tm,td]=dateStr.split('-').map(Number);
@@ -1057,6 +1065,7 @@ window.toggleLunar = function(){
   const on=document.getElementById('fLunar').checked;
   document.getElementById('solarDateBlock').style.display=on?'none':'';
   document.getElementById('lunarDateBlock').style.display=on?'':'none';
+  document.getElementById('excludeWrap').style.display=on?'none':''; // 음력 매년 반복은 단일 날짜라 제외 옵션이 의미 없음
   const repEl=document.getElementById('fRepeat');
   ['daily','weekly','monthly'].forEach(v=>{
     const opt=repEl.querySelector(`option[value="${v}"]`);
@@ -1187,8 +1196,8 @@ window.saveEvent = async function(){
   if(repeatUntil && repeatUntil<start){ toast('반복 종료일이 시작일보다 빠릅니다', true); return; }
   const data={
     title, start, end, allDay, repeat, repeatUntil,
-    excludeWeekend: repeat!=='none' && document.getElementById('fExcludeWeekend').checked,
-    excludeHoliday: repeat!=='none' && document.getElementById('fExcludeHoliday').checked,
+    excludeWeekend: !isLunar && document.getElementById('fExcludeWeekend').checked,
+    excludeHoliday: !isLunar && document.getElementById('fExcludeHoliday').checked,
     startTime: allDay?'':getTimeSelect('fStartTime'),
     endTime: allDay?'':getTimeSelect('fEndTime'),
     location: document.getElementById('fLocation').value.trim(),

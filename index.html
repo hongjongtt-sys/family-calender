@@ -399,8 +399,19 @@ header{background:rgba(11,13,18,.72);backdrop-filter:blur(10px);-webkit-backdrop
     <div id="solarDateBlock">
       <div class="form-row">
         <div class="form-group"><label class="form-label">시작일</label><input type="date" class="form-input" id="fStart"></div>
-        <div class="form-group" id="fEndWrap"><label class="form-label">종료일</label><input type="date" class="form-input" id="fEnd"></div>
+        <div class="form-group" id="fStartTimeWrap" style="display:none">
+          <label class="form-label">시작 시간</label>
+          <div class="time-pick"><select class="form-select" id="fStartTimeH"></select><span>:</span><select class="form-select" id="fStartTimeM"></select></div>
+        </div>
       </div>
+      <div class="form-row">
+        <div class="form-group" id="fEndWrap"><label class="form-label">종료일</label><input type="date" class="form-input" id="fEnd"></div>
+        <div class="form-group" id="fEndTimeWrap" style="display:none">
+          <label class="form-label">종료 시간</label>
+          <div class="time-pick"><select class="form-select" id="fEndTimeH"></select><span>:</span><select class="form-select" id="fEndTimeM"></select></div>
+        </div>
+      </div>
+      <div id="timeSpanNote" style="font-size:10.5px;color:var(--text-dim);margin:-8px 0 12px;display:none">여러 날짜에 걸치는 일정이면, 시작 시간은 시작일에 · 종료 시간은 종료일에 적용돼요 (예: 오늘 14시 ~ 3일 뒤 19시)</div>
     </div>
 
     <!-- 음력 날짜 (음력 체크 시) -->
@@ -416,14 +427,6 @@ header{background:rgba(11,13,18,.72);backdrop-filter:blur(10px);-webkit-backdrop
 
     <div class="allday-row">
       <label class="toggle-item"><input type="checkbox" id="fAllday" checked onchange="toggleAllday()"> 종일</label>
-    </div>
-    <div class="form-row" id="timeRow" style="display:none">
-      <div class="form-group"><label class="form-label">시작 시간</label>
-        <div class="time-pick"><select class="form-select" id="fStartTimeH"></select><span>:</span><select class="form-select" id="fStartTimeM"></select></div>
-      </div>
-      <div class="form-group"><label class="form-label">종료 시간</label>
-        <div class="time-pick"><select class="form-select" id="fEndTimeH"></select><span>:</span><select class="form-select" id="fEndTimeM"></select></div>
-      </div>
     </div>
 
     <div class="form-row">
@@ -940,9 +943,11 @@ function renderCalendar(){
       ${shown.map(ev=>{
         const ids=(ev.memberIds||[]).slice(0,3);
         const c=ids.length? memberColor(ids[0]) : 'var(--text-muted)';
+        const isSpan=(!ev.repeat||ev.repeat==='none') && ev.start!==ev.end;
+        const marker = !isSpan ? '' : (key===ev.start?'▶ ':key===ev.end?'⏹ ':'▬ ');
         return `<div class="cal-dot" style="background:${c}30;border-left:2px solid ${c}">
           <span class="mdots">${ids.map(id=>`<span style="background:${memberColor(id)}"></span>`).join('')}</span>
-          ${esc(ev.title)}</div>`;
+          ${marker}${esc(ev.title)}</div>`;
       }).join('')}
       ${dayEvents.length>3?`<div class="cal-more">+${dayEvents.length-3}개 더</div>`:''}
     </div>`;
@@ -985,7 +990,17 @@ function renderDayModal(){
     const ids=ev.memberIds||[];
     const names=ids.map(id=>memberById(id)?.name).filter(Boolean);
     const span = (!ev.repeat||ev.repeat==='none') && ev.start!==ev.end ? `${ev.start.slice(5)} ~ ${ev.end.slice(5)}` : '';
-    const timeStr = ev.allDay?'종일':`🕐 ${esc(ev.startTime||'')}${ev.endTime?' ~ '+esc(ev.endTime):''}`;
+    const isSpan = (!ev.repeat||ev.repeat==='none') && ev.start!==ev.end;
+    let timeStr;
+    if(ev.allDay){
+      timeStr='종일';
+    } else if(isSpan){
+      if(dateStr===ev.start) timeStr=`🕐 ${esc(ev.startTime||'')} 시작`;
+      else if(dateStr===ev.end) timeStr=`🕐 ${esc(ev.endTime||'')} 종료`;
+      else timeStr='🕐 종일 (진행 중)';
+    } else {
+      timeStr=`🕐 ${esc(ev.startTime||'')}${ev.endTime?' ~ '+esc(ev.endTime):''}`;
+    }
     return `<div class="evt-item" onclick="editEvent('${ev.id}')">
       <div class="evt-members">${ids.map(id=>`<span class="dot" style="background:${memberColor(id)}"></span>`).join('')}</div>
       <div class="evt-main">
@@ -1033,8 +1048,16 @@ function renderUpcoming(){
 window.pickedMemberIds=new Set();
 window.toggleAllday = function(){
   const on=document.getElementById('fAllday').checked;
-  document.getElementById('timeRow').style.display=on?'none':'grid';
+  document.getElementById('fStartTimeWrap').style.display=on?'none':'';
+  document.getElementById('fEndTimeWrap').style.display=on?'none':'';
+  updateTimeSpanNote();
 };
+function updateTimeSpanNote(){
+  const allDay=document.getElementById('fAllday').checked;
+  const rep=document.getElementById('fRepeat').value;
+  const note=document.getElementById('timeSpanNote');
+  note.style.display = (!allDay && rep==='none') ? '' : 'none';
+}
 function populateTimeSelects(){
   const hEl=['fStartTimeH','fEndTimeH'], mEl=['fStartTimeM','fEndTimeM'];
   hEl.forEach(id=>{
@@ -1072,6 +1095,7 @@ window.toggleRepeat = function(){
     note.textContent=`시작일부터 ${LBL[rep]} 반복됩니다 (하루짜리 일정으로 처리)`;
     untilWrap.style.display='';
   }
+  updateTimeSpanNote();
 };
 function populateLunarSelects(){
   const yEl=document.getElementById('fLunarYear'), mEl=document.getElementById('fLunarMonth'), dEl=document.getElementById('fLunarDay');

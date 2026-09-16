@@ -76,18 +76,27 @@ header{background:rgba(11,13,18,.72);backdrop-filter:blur(10px);-webkit-backdrop
 
 .app-grid{display:grid;grid-template-columns:1fr 240px;gap:20px;align-items:start}
 .main-col{min-width:0}
-.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px}
+.two-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:18px}
 .two-col .panel{margin-top:0}
 .sidebar{position:sticky;top:74px;background:rgba(255,255,255,.045);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-md);padding:16px;overflow:hidden}
 .sidebar-label{font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:10px}
 .side-link{display:flex;align-items:center;gap:7px;padding:7px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:12px;margin-bottom:5px;transition:all .15s}
 .side-link:hover{border-color:var(--accent);background:var(--accent-light)}
 .side-link .link-name{font-size:12px}
+.mobile-only{display:none}
+#linksBackdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:249}
 @media (max-width:860px){
   .app-grid{grid-template-columns:1fr}
-  .sidebar{position:static;order:99}
   .two-col{grid-template-columns:1fr}
+  .mobile-only{display:flex}
+  .sidebar{
+    display:none;position:fixed;left:16px;right:16px;top:72px;bottom:auto;
+    max-height:76vh;overflow-y:auto;z-index:250;
+  }
+  .sidebar.mobile-open{display:block}
+  #linksBackdrop.show{display:block}
 }
+@media (max-width:640px){ .two-col{grid-template-columns:1fr} }
 .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px}
 .cal-nav{display:flex;align-items:center;gap:6px}
 .cal-nav button{height:30px;min-width:30px;padding:0 8px;background:var(--surface);border:1px solid var(--border);border-radius:7px;cursor:pointer;font-size:13px;color:var(--text-muted);transition:all .15s;font-family:'Pretendard',sans-serif}
@@ -274,6 +283,7 @@ header{background:rgba(11,13,18,.72);backdrop-filter:blur(10px);-webkit-backdrop
   <div class="logo">Fam<em>ily</em></div>
   <div class="header-right">
     <div class="whoami" id="whoamiBtn" onclick="openWhoModal()"></div>
+    <button class="icon-btn mobile-only" onclick="openLinksPopup()" title="바로가기">📎</button>
     <button class="icon-btn" onclick="openMemberModal()" title="가족 구성원 관리">⚙</button>
     <button class="icon-btn" onclick="doLogout()" title="로그아웃">🔒</button>
   </div>
@@ -322,6 +332,14 @@ header{background:rgba(11,13,18,.72);backdrop-filter:blur(10px);-webkit-backdrop
 
         <div class="panel">
           <div class="panel-head">
+            <div class="panel-title" style="font-size:17px">✅ 할 일</div>
+            <span id="todoStatus" style="font-size:10px;color:var(--text-dim)"></span>
+          </div>
+          <div class="panel-body" id="todoBlock"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
             <div class="panel-title" style="font-size:17px">🗒 자유 메모</div>
             <span id="memoStatus" style="font-size:10px;color:var(--text-dim)"></span>
           </div>
@@ -330,7 +348,8 @@ header{background:rgba(11,13,18,.72);backdrop-filter:blur(10px);-webkit-backdrop
       </div>
     </div>
 
-    <div class="sidebar">
+    <div class="sidebar" id="linksSidebar">
+      <button class="modal-close mobile-only" onclick="closeLinksPopup()" style="position:absolute;top:12px;right:12px">✕</button>
       <div class="sidebar-label">🔗 바로가기</div>
       <div id="linkList" style="margin-bottom:10px"></div>
       <div style="display:flex;flex-direction:column;gap:6px">
@@ -339,6 +358,7 @@ header{background:rgba(11,13,18,.72);backdrop-filter:blur(10px);-webkit-backdrop
         <button class="btn btn-primary btn-sm" onclick="addLink()">+ 추가</button>
       </div>
     </div>
+    <div id="linksBackdrop" onclick="closeLinksPopup()"></div>
   </div>
 </div>
 
@@ -560,6 +580,7 @@ window.members=[]; window.events=[];
 window.shopItems=[]; window.quickLinks=[]; window.familyConfig={};
 window.customHolidays={};
 window.memoEditing=false;
+window.todoEditing=false;
 window.lunarCal=new window.KoreanLunarCalendar();
 window.calDate=new Date();
 window.selectedDate=null;
@@ -649,6 +670,7 @@ function startApp(){
     window.familyConfig={};
     snap.docs.forEach(d=>{ window.familyConfig[d.id]=d.data(); });
     if(!window.memoEditing) renderMemo();
+    if(!window.todoEditing) renderTodo();
   });
   onSnapshot(collection(db,HOLIDAY_COL), snap=>{
     window.customHolidays={};
@@ -1444,6 +1466,112 @@ window.toggleMemoCheck = async function(idx){
   catch(e){ toast('오류: '+e.message, true); }
 };
 
+// ── TODO 체크리스트 (자유메모식 입력, 체크 후 24시간 뒤 자동 삭제) ──
+function todoText(){ return (window.familyConfig.todo&&window.familyConfig.todo.content)||''; }
+function parseTodoLine(line){
+  const m=line.match(/^(\s*)\[([ xX]?)\]\s?(.*)$/);
+  if(!m) return null;
+  const done=/[xX]/.test(m[2]);
+  let text=m[3];
+  let doneAt=null;
+  if(done){
+    const dm=text.match(/ ::(\d{4}-\d{2}-\d{2}T[0-9:.]+Z)$/);
+    if(dm){ doneAt=dm[1]; text=text.slice(0,dm.index); }
+  }
+  return {indent:m[1], done, text, doneAt};
+}
+function buildTodoLine(indent, done, text, doneAt){
+  return `${indent}[${done?'x':' '}] ${text}${done&&doneAt?' ::'+doneAt:''}`;
+}
+async function purgeExpiredTodo(){
+  const text=todoText();
+  if(!text.trim()) return;
+  const lines=text.split('\n');
+  const now=Date.now();
+  const kept=lines.filter(line=>{
+    const p=parseTodoLine(line);
+    if(!p || !p.done || !p.doneAt) return true;
+    return (now - new Date(p.doneAt).getTime()) < 86400000;
+  });
+  if(kept.length!==lines.length){
+    try{ await setDoc(doc(db,CFG_COL,'todo'), {content:kept.join('\n'), updatedAt:new Date().toISOString()}); }
+    catch(e){ /* 조용히 무시 */ }
+  }
+}
+function renderTodo(){
+  const el=document.getElementById('todoBlock'); if(!el) return;
+  purgeExpiredTodo();
+  const text=todoText();
+  const st=document.getElementById('todoStatus');
+  if(st && !window.todoEditing) st.textContent='';
+  if(window.todoEditing){
+    el.innerHTML=`<textarea class="memo-textarea" id="taTodo" placeholder="할 일을 적어보세요. 줄 앞에 [] 를 넣으면 체크 항목이 됩니다."
+      oninput="todoInput()" onkeydown="todoKey(event)">${esc(text)}</textarea>
+      <div class="memo-edit-bar">
+        <span class="blk-hint">줄 앞에 <b>[]</b> · 체크하면 하루 뒤 자동으로 사라져요 · <b>Ctrl+Enter</b> 저장</span>
+        <span style="display:flex;gap:6px">
+          <button class="btn btn-ghost btn-sm" onclick="cancelTodo()">취소</button>
+          <button class="btn btn-primary btn-sm" onclick="commitTodo()">저장</button>
+        </span>
+      </div>`;
+    const ta=document.getElementById('taTodo');
+    ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
+    return;
+  }
+  if(!text.trim()){
+    el.innerHTML=`<div class="blk-empty" onclick="startTodo()">할 일을 적어보세요. 줄 앞에 [] 를 넣으면 체크할 수 있는 항목이 돼요.</div>`;
+    return;
+  }
+  const lines=text.split('\n');
+  const html=lines.map((line,i)=>{
+    const p=parseTodoLine(line);
+    if(p) return `<div class="chk-line ${p.done?'done':''}">
+      <span class="chk-box ${p.done?'on':''}" onclick="toggleTodoCheck(${i})">${p.done?'✓':''}</span>
+      <span class="chk-text" onclick="startTodo()">${esc(p.text)||'&nbsp;'}</span></div>`;
+    return `<div class="plain-line" onclick="startTodo()">${esc(line)||'&nbsp;'}</div>`;
+  }).join('');
+  el.innerHTML=`<div class="blk-view">${html}</div>`;
+}
+window.startTodo = function(){ window.todoEditing=true; renderTodo(); };
+window.todoInput = function(){ const st=document.getElementById('todoStatus'); if(st) st.textContent='● 저장 안 됨'; };
+window.todoKey = function(e){
+  if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){ e.preventDefault(); commitTodo(); }
+  if(e.key==='Escape'){ e.preventDefault(); cancelTodo(); }
+};
+window.cancelTodo = function(){
+  const ta=document.getElementById('taTodo');
+  if(ta && ta.value!==todoText() && !confirm('저장하지 않고 취소할까요?')) return;
+  window.todoEditing=false; renderTodo();
+};
+window.commitTodo = async function(){
+  const ta=document.getElementById('taTodo'); if(!ta) return;
+  const val=ta.value;
+  window.todoEditing=false;
+  try{ await setDoc(doc(db,CFG_COL,'todo'), {content:val, updatedAt:new Date().toISOString()}); }
+  catch(e){ toast('저장 실패: '+e.message, true); }
+  renderTodo();
+};
+window.toggleTodoCheck = async function(idx){
+  const lines=todoText().split('\n');
+  const p=parseTodoLine(lines[idx]); if(!p) return;
+  const newDone=!p.done;
+  const doneAt = newDone ? new Date().toISOString() : null;
+  lines[idx]=buildTodoLine(p.indent, newDone, p.text, doneAt);
+  try{ await setDoc(doc(db,CFG_COL,'todo'), {content:lines.join('\n'), updatedAt:new Date().toISOString()}); }
+  catch(e){ toast('오류: '+e.message, true); }
+};
+setInterval(()=>{ if(!window.todoEditing) renderTodo(); }, 5*60000); // 자정 넘어가며 만료되는 항목 주기적으로 정리
+
+// ── 바로가기 모바일 팝업 ───────────────────────────────
+window.openLinksPopup = function(){
+  document.getElementById('linksSidebar').classList.add('mobile-open');
+  document.getElementById('linksBackdrop').classList.add('show');
+};
+window.closeLinksPopup = function(){
+  document.getElementById('linksSidebar').classList.remove('mobile-open');
+  document.getElementById('linksBackdrop').classList.remove('show');
+};
+
 // ── QUICK LINKS ──────────────────────────────────────
 function renderLinks(){
   const el=document.getElementById('linkList'); if(!el) return;
@@ -1484,8 +1612,8 @@ window.deleteLink = async function(id){
 
 document.addEventListener('keydown', e=>{
   if(e.key==='Escape'){
-    if(window.memoEditing) return;
-    closeEventModal(); closeMemberModal(); closeWhoModal(); closeDayModal(); closeHolidayModal();
+    if(window.memoEditing||window.todoEditing) return;
+    closeEventModal(); closeMemberModal(); closeWhoModal(); closeDayModal(); closeHolidayModal(); closeLinksPopup();
   }
 });
 </script>

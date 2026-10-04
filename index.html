@@ -318,7 +318,7 @@ header{background:rgba(11,13,18,.72);backdrop-filter:blur(10px);-webkit-backdrop
       <div class="two-col">
         <div class="panel">
           <div class="panel-head">
-            <div class="panel-title" style="font-size:17px">🛒 장보기</div>
+            <div class="panel-title" style="font-size:17px">🛒 사야 하는 것</div>
             <button class="btn btn-ghost btn-sm" onclick="clearCheckedShop()">완료 지우기</button>
           </div>
           <div class="panel-body">
@@ -1423,7 +1423,7 @@ function renderMemo(){
     return;
   }
   if(!text.trim()){
-    el.innerHTML=`<div class="blk-empty" onclick="startMemo()">떠오르는 것을 자유롭게 적어두세요 (장보기 외의 메모, 공지 등)</div>`;
+    el.innerHTML=`<div class="blk-empty" onclick="startMemo()">떠오르는 것을 자유롭게 적어두세요 (사야 하는 것 외의 메모, 공지 등)</div>`;
     return;
   }
   const lines=text.split('\n');

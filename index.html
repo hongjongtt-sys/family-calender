@@ -660,6 +660,7 @@ function startApp(){
   });
   onSnapshot(collection(db,SHOP_COL), snap=>{
     window.shopItems = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.order||0)-(b.order||0));
+    purgeExpiredShop();
     renderShop();
   });
   onSnapshot(collection(db,LINK_COL), snap=>{
@@ -1360,6 +1361,12 @@ window.deleteMember = async function(id, name){
 };
 
 // ── SHOPPING LIST ────────────────────────────────────
+async function purgeExpiredShop(){
+  const now=Date.now();
+  const old=(window.shopItems||[]).filter(it=>it.done && it.doneAt && now-it.doneAt>=86400000);
+  for(const it of old){ try{ await deleteDoc(doc(db,SHOP_COL,it.id)); }catch(e){} }
+}
+setInterval(()=>{ if(window.shopItems) purgeExpiredShop(); }, 600000);
 function renderShop(){
   const el=document.getElementById('shopList'); if(!el) return;
   if(!window.shopItems.length){ el.innerHTML=`<div style="font-size:12.5px;color:var(--text-dim);text-align:center;padding:12px 0">담긴 항목이 없습니다</div>`; return; }
@@ -1381,7 +1388,7 @@ window.addShopItem = async function(){
   }catch(e){ toast('추가 실패: '+e.message, true); }
 };
 window.toggleShopItem = async function(id, cur){
-  try{ await updateDoc(doc(db,SHOP_COL,id), {done:!cur}); }
+  try{ await updateDoc(doc(db,SHOP_COL,id), {done:!cur, doneAt:(!cur?Date.now():null)}); }
   catch(e){ toast('오류: '+e.message, true); }
 };
 window.deleteShopItem = async function(id){

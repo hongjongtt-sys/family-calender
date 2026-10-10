@@ -94,6 +94,7 @@ header{background:rgba(11,13,18,.72);backdrop-filter:blur(10px);-webkit-backdrop
     max-height:76vh;overflow-y:auto;z-index:250;
   }
   .sidebar.mobile-open{display:block}
+  .sidebar .sidebar-label{padding-right:40px}
   #linksBackdrop.show{display:block}
 }
 @media (max-width:640px){ .two-col{grid-template-columns:1fr} }
@@ -350,19 +351,30 @@ header{background:rgba(11,13,18,.72);backdrop-filter:blur(10px);-webkit-backdrop
 
     <div class="sidebar" id="linksSidebar">
       <button class="modal-close mobile-only" onclick="closeLinksPopup()" style="position:absolute;top:12px;right:12px">✕</button>
-      <div class="sidebar-label">🔗 바로가기</div>
-      <div id="linkList" style="margin-bottom:10px"></div>
-      <div style="display:flex;flex-direction:column;gap:6px">
-        <input type="text" class="form-input" id="linkName" placeholder="이름 (예: 학교 알림장)" style="font-size:12px;padding:7px 10px">
-        <input type="text" class="form-input" id="linkUrl" placeholder="https://..." style="font-size:12px;padding:7px 10px">
-        <button class="btn btn-primary btn-sm" onclick="addLink()">+ 추가</button>
-      </div>
+      <div class="sidebar-label" style="display:flex;align-items:center;justify-content:space-between">🔗 바로가기 <button class="modal-close" onclick="openLinksModal()" title="관리" style="width:26px;height:26px">⚙</button></div>
+      <div id="sideLinks"></div>
     </div>
     <div id="linksBackdrop" onclick="closeLinksPopup()"></div>
   </div>
 </div>
 
 <!-- DAY EVENTS MODAL (달력에서 날짜 클릭 시) -->
+<!-- LINKS MODAL -->
+<div class="overlay" id="linksOverlay" onclick="closeOutside(event,'linksOverlay',closeLinksModal)">
+  <div class="modal" style="width:460px">
+    <div class="modal-head">
+      <div class="modal-title">🔗 바로가기 관리</div>
+      <button class="modal-close" onclick="closeLinksModal()">✕</button>
+    </div>
+    <div id="linkList" style="margin-bottom:16px"></div>
+    <div style="border-top:1px solid var(--border);padding-top:14px;display:flex;flex-direction:column;gap:8px">
+      <input type="text" class="form-input" id="linkName" placeholder="이름 (예: 학교 알림장)">
+      <input type="text" class="form-input" id="linkUrl" placeholder="https://...">
+      <button class="btn btn-primary" onclick="addLink()">+ 바로가기 추가</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="dayOverlay" onclick="closeOutside(event,'dayOverlay',closeDayModal)">
   <div class="modal">
     <div class="modal-head">
@@ -1581,15 +1593,25 @@ window.closeLinksPopup = function(){
 
 // ── QUICK LINKS ──────────────────────────────────────
 function renderLinks(){
-  const el=document.getElementById('linkList'); if(!el) return;
-  el.innerHTML = window.quickLinks.length
-    ? window.quickLinks.map(l=>`<div class="link-item">
-        <span class="link-name" onclick="openLink('${jsStr(l.url)}')">🔗 ${esc(l.name)}</span>
-        <button class="link-del" onclick="editLink('${l.id}','${jsStr(l.name)}','${jsStr(l.url)}')">✏️</button>
-        <button class="link-del" onclick="deleteLink('${l.id}')">✕</button>
-      </div>`).join('')
-    : `<div style="font-size:12.5px;color:var(--text-dim);text-align:center;padding:8px 0">자주 쓰는 사이트를 등록해보세요</div>`;
+  const side=document.getElementById('sideLinks');
+  if(side){
+    side.innerHTML = window.quickLinks.length
+      ? window.quickLinks.map(l=>`<div class="side-link" style="cursor:pointer" onclick="openLink('${jsStr(l.url)}');closeLinksPopup()">🔗 <span class="link-name">${esc(l.name)}</span></div>`).join('')
+      : `<div style="font-size:11.5px;color:var(--text-dim)">⚙ 를 눌러 자주 쓰는 사이트를 등록하세요</div>`;
+  }
+  const el=document.getElementById('linkList');
+  if(el){
+    el.innerHTML = window.quickLinks.length
+      ? window.quickLinks.map(l=>`<div class="link-item">
+          <span class="link-name" onclick="openLink('${jsStr(l.url)}')">🔗 ${esc(l.name)}</span>
+          <button class="link-del" onclick="editLink('${l.id}','${jsStr(l.name)}','${jsStr(l.url)}')">✏️</button>
+          <button class="link-del" onclick="deleteLink('${l.id}')">✕</button>
+        </div>`).join('')
+      : `<div style="font-size:12.5px;color:var(--text-dim);text-align:center;padding:8px 0">등록된 바로가기가 없습니다</div>`;
+  }
 }
+window.openLinksModal = function(){ document.getElementById('linksOverlay').classList.add('open'); renderLinks(); };
+window.closeLinksModal = function(){ document.getElementById('linksOverlay').classList.remove('open'); };
 window.openLink = function(url){ window.open(url,'_blank','noopener'); };
 window.addLink = async function(){
   const name=document.getElementById('linkName').value.trim();

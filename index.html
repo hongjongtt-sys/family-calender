@@ -186,6 +186,9 @@ header{background:rgba(11,13,18,.72);backdrop-filter:blur(10px);-webkit-backdrop
 .blk-hint{font-size:10.5px;color:var(--text-dim)}
 
 /* LINKS */
+.mobile-links{gap:8px;overflow-x:auto;padding:2px 0 12px;margin-bottom:2px;-webkit-overflow-scrolling:touch}
+.mobile-links .chip{flex:0 0 auto;padding:7px 13px;border-radius:999px;background:var(--surface2);border:1px solid var(--border);font-size:12.5px;white-space:nowrap;cursor:pointer}
+.mobile-links .chip:active{border-color:var(--accent);background:var(--accent-light)}
 .link-item{display:flex;align-items:center;gap:9px;padding:9px 11px;background:var(--surface2);border:1px solid var(--border);border-radius:9px;font-size:12.5px;transition:all .15s;margin-bottom:6px}
 .link-item:last-child{margin-bottom:0}
 .link-item:hover{border-color:var(--accent);background:var(--accent-light);box-shadow:0 3px 10px rgba(37,99,235,.12)}
@@ -284,7 +287,7 @@ header{background:rgba(11,13,18,.72);backdrop-filter:blur(10px);-webkit-backdrop
   <div class="logo">Fam<em>ily</em></div>
   <div class="header-right">
     <div class="whoami" id="whoamiBtn" onclick="openWhoModal()"></div>
-    <button class="icon-btn mobile-only" onclick="openLinksPopup()" title="바로가기">📎</button>
+    <button class="icon-btn mobile-only" onclick="openLinksModal()" title="바로가기 관리">📎</button>
     <button class="icon-btn" onclick="openMemberModal()" title="가족 구성원 관리">⚙</button>
     <button class="icon-btn" onclick="doLogout()" title="로그아웃">🔒</button>
   </div>
@@ -307,6 +310,7 @@ header{background:rgba(11,13,18,.72);backdrop-filter:blur(10px);-webkit-backdrop
 
   <div class="app-grid">
     <div class="main-col">
+      <div class="mobile-links mobile-only" id="mobileLinks"></div>
       <div class="filters" id="filterChips"></div>
 
       <div class="cal-scroll-wrap"><div class="cal-grid" id="calGrid"></div></div>
@@ -1598,6 +1602,12 @@ function renderLinks(){
     side.innerHTML = window.quickLinks.length
       ? window.quickLinks.map(l=>`<div class="side-link" style="cursor:pointer" onclick="openLink('${jsStr(l.url)}');closeLinksPopup()">🔗 <span class="link-name">${esc(l.name)}</span></div>`).join('')
       : `<div style="font-size:11.5px;color:var(--text-dim)">⚙ 를 눌러 자주 쓰는 사이트를 등록하세요</div>`;
+  }
+  const mob=document.getElementById('mobileLinks');
+  if(mob){
+    mob.innerHTML = window.quickLinks.length
+      ? window.quickLinks.map(l=>`<span class="chip" onclick="openLink('${jsStr(l.url)}')">🔗 ${esc(l.name)}</span>`).join('')
+      : `<span class="chip" onclick="openLinksModal()" style="color:var(--text-dim)">＋ 바로가기 등록</span>`;
   }
   const el=document.getElementById('linkList');
   if(el){

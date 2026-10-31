@@ -35,9 +35,16 @@ body.has-bg .panel,body.has-bg .sidebar{background:rgba(14,17,26,var(--glass,.6)
 body.has-bg .cal-label{background:rgba(20,23,34,calc(var(--glass,.6) + .12))}
 body.has-bg .cal-grid{background:rgba(255,255,255,.08)}
 body.has-bg .filter-chip,body.has-bg .cal-nav button,body.has-bg .side-link{background:rgba(14,17,26,.6)}
-.fam-photo{position:relative;height:250px;border-radius:18px;overflow:hidden;margin-bottom:16px;border:1px solid var(--border2);box-shadow:var(--shadow-md);background:#1a1d27 center/cover no-repeat;transition:height .2s}
+.fam-photo{position:relative;height:300px;border-radius:18px;overflow:hidden;margin-bottom:16px;border:1px solid var(--border2);box-shadow:var(--shadow-md);background:#1a1d27 center/cover no-repeat;transition:height .2s}
 .fam-photo::after{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,rgba(6,8,14,.45),transparent 45%),linear-gradient(180deg,transparent 55%,rgba(6,8,14,.55))}
 .fam-photo.folded{height:48px}
+.fp-blur{position:absolute;inset:-40px;background:center/cover no-repeat;filter:blur(24px) brightness(.55);pointer-events:none}
+.fp-img{position:absolute;inset:0;background:center/contain no-repeat;pointer-events:none}
+.ph-fit{display:flex;align-items:center;gap:8px;margin:-4px 0 14px;font-size:12px;color:var(--text-muted)}
+.ph-fit span{flex-shrink:0}
+.ph-fit .seg{display:flex;flex:1;gap:4px;background:rgba(255,255,255,.05);padding:3px;border-radius:9px}
+.ph-fit button{flex:1;padding:7px 6px;border:none;border-radius:7px;background:none;color:var(--text-muted);font:600 12px 'Pretendard',sans-serif;cursor:pointer}
+.ph-fit button.on{background:var(--accent-light);color:#fff;box-shadow:inset 0 0 0 1px var(--accent)}
 .fam-photo.folded .anv{display:none}
 .anv{position:absolute;left:18px;bottom:14px;top:14px;z-index:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:flex-start;gap:5px;--anv-fs:13px}
 .anv-p{font-size:var(--anv-fs);line-height:1.3;color:#fff;padding:.32em .9em;border-radius:20px;background:rgba(10,12,18,.5);border:1px solid rgba(255,255,255,.25);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);white-space:nowrap;flex-shrink:0}
@@ -596,6 +603,9 @@ header{background:rgba(11,13,18,.72);backdrop-filter:blur(10px);-webkit-backdrop
     </div>
     <div id="phFamily">
       <div class="ph-prev" id="phFamPrev"></div>
+      <div class="ph-fit" id="phFit"><span>컴퓨터 화면에서</span><div class="seg">
+        <button id="fitFill" onclick="setFamFit('fill')">꽉 채우기</button>
+        <button id="fitAll" onclick="setFamFit('all')">사진 전체 보이기</button></div></div>
       <div class="form-label">기념일 · 사진 위에 n일째로 보여요</div>
       <div id="anvList"></div>
       <button class="btn btn-ghost btn-sm" style="width:100%;margin:2px 0 14px;border:1px dashed var(--border2)" onclick="addAnniv()">+ 기념일 추가</button>
@@ -603,7 +613,7 @@ header{background:rgba(11,13,18,.72);backdrop-filter:blur(10px);-webkit-backdrop
         <button class="btn btn-primary" style="flex:1" onclick="pickPhoto('family')">📷 사진 바꾸기</button>
         <button class="btn btn-danger" id="phFamDel" onclick="deletePhoto('family')">삭제</button>
       </div>
-      <div class="ph-note">이름과 날짜를 넣으면 오늘이 며칠째인지 자동으로 계산됩니다(그날이 1일째). 미리보기를 위아래로 끌면 보이는 위치가 바뀝니다. 큰 사진은 자동으로 줄여서 저장합니다.<br>사진은 가족 달력의 Firebase에만 저장되고 공개 저장소(GitHub)에는 올라가지 않습니다.</div>
+      <div class="ph-note">이름과 날짜를 넣으면 오늘이 며칠째인지 자동으로 계산됩니다(그날이 1일째). 미리보기를 위아래로 끌면 보이는 위치가 바뀌고, 컴퓨터와 폰은 위치를 따로 기억합니다. 세로 사진은 컴퓨터에서 '사진 전체 보이기'를 추천해요. 큰 사진은 자동으로 줄여서 저장합니다.<br>사진은 가족 달력의 Firebase에만 저장되고 공개 저장소(GitHub)에는 올라가지 않습니다.</div>
     </div>
     <div id="phBg" style="display:none">
       <div class="ph-prev" id="phBgPrev"></div>
@@ -1768,6 +1778,10 @@ function annivLabel(dateStr){
   const n=annivDays(dateStr); if(n===null) return '';
   return n>=1 ? `${n.toLocaleString()}일째` : `D-${1-n}`;
 }
+function isWideScreen(){ return window.matchMedia('(min-width:641px)').matches; }
+function famPos(p){ return isWideScreen() ? (p.posWide ?? p.pos ?? 50) : (p.pos ?? 50); }   // 컴퓨터·폰 위치 따로
+function famFitAll(p){ return isWideScreen() && p.fitWide==='all'; }
+window.matchMedia('(min-width:641px)').addEventListener('change', ()=>{ renderFamPhoto(); refreshPhotoModal(); });
 function renderFamPhoto(){
   const el=document.getElementById('famPhoto'); if(!el) return;
   const p=window.familyPhotos.family;
@@ -1775,9 +1789,10 @@ function renderFamPhoto(){
   const folded=localStorage.getItem('fc_photoFold')==='1';
   const list=annivList().filter(a=>a.name||a.date);
   el.className='fam-photo'+(folded?' folded':'');
-  el.style.backgroundImage=`url(${p.data})`;
-  el.style.backgroundPosition=`center ${p.pos??50}%`;
-  el.innerHTML=`<div class="anv">${list.map(a=>`<span class="anv-p"><b>${esc(a.name||'')}</b> ${annivLabel(a.date)}</span>`).join('')}</div>
+  const all=famFitAll(p);
+  el.style.backgroundImage = all ? '' : `url(${p.data})`;
+  el.style.backgroundPosition=`center ${famPos(p)}%`;
+  el.innerHTML=(all?`<div class="fp-blur" style="background-image:url(${p.data})"></div><div class="fp-img" style="background-image:url(${p.data})"></div>`:'')+`<div class="anv">${list.map(a=>`<span class="anv-p"><b>${esc(a.name||'')}</b> ${annivLabel(a.date)}</span>`).join('')}</div>
     <div class="fp-btns"><button class="fp-btn" onclick="openPhotoModal('family')" title="사진 바꾸기">🖼<span class="t"> 사진 바꾸기</span></button>
     <button class="fp-btn" onclick="toggleFamFold()" title="${folded?'펼치기':'접기'}"><span class="t">${folded?'펼치기 ':'접기 '}</span>${folded?'▼':'▲'}</button></div>`;
   fitAnniv();
@@ -1830,7 +1845,19 @@ function refreshPhotoModal(){
   if(!photoModalOpen()) return;
   const f=window.familyPhotos.family, b=window.familyPhotos.background;
   const fp=document.getElementById('phFamPrev');
-  if(f&&f.data){ fp.style.backgroundImage=`url(${f.data})`; fp.style.backgroundPosition=`center ${f.pos??50}%`; fp.innerHTML='<span class="tip">위아래로 끌어서 위치 조절</span>'; }
+  // 미리보기 모양을 지금 화면의 사진 칸과 같게
+  const wide=isWideScreen(), stripW=(document.querySelector('.wrap')?.clientWidth||1000)-32;
+  fp.style.height = Math.round(Math.max(110, Math.min(220, fp.clientWidth * (wide?300:180) / Math.max(300,stripW)))) + 'px';
+  document.getElementById('phFit').style.display = f&&f.data ? '' : 'none';
+  document.getElementById('fitFill').classList.toggle('on', !(f&&f.fitWide==='all'));
+  document.getElementById('fitAll').classList.toggle('on', !!(f&&f.fitWide==='all'));
+  if(f&&f.data){
+    const all=famFitAll(f);
+    fp.style.backgroundImage = all ? '' : `url(${f.data})`; fp.style.backgroundPosition=`center ${famPos(f)}%`;
+    fp.style.cursor = all ? 'default' : '';
+    fp.innerHTML = (all?`<div class="fp-blur" style="background-image:url(${f.data})"></div><div class="fp-img" style="background-image:url(${f.data})"></div>`:'')
+      + `<span class="tip">${all?'컴퓨터에서는 사진 전체가 보여요':(wide?'컴퓨터 화면 위치 · 위아래로 끌기':'폰 화면 위치 · 위아래로 끌기')}</span>`;
+  }
   else { fp.style.backgroundImage=''; fp.innerHTML='아직 가족사진이 없어요.<br>아래 사진 바꾸기로 올려 주세요'; }
   document.getElementById('phFamDel').style.display = f&&f.data ? '' : 'none';
   if(!document.activeElement || !document.activeElement.closest('#anvList')) renderAnnivRows();
@@ -1893,7 +1920,8 @@ function bindDragPos(elId, key){
   let startY=0, startPos=50, dragging=false, cur=50;
   el.addEventListener('pointerdown', e=>{
     const p=window.familyPhotos[key]; if(!p||!p.data) return;
-    dragging=true; startY=e.clientY; startPos=p.pos??50; cur=startPos; el.setPointerCapture(e.pointerId);
+    if(key==='family' && famFitAll(p)) return;
+    dragging=true; startY=e.clientY; startPos = key==='family' ? famPos(p) : (p.pos??50); cur=startPos; el.setPointerCapture(e.pointerId);
   });
   el.addEventListener('pointermove', e=>{
     if(!dragging) return;
@@ -1905,11 +1933,17 @@ function bindDragPos(elId, key){
   const end=async()=>{
     if(!dragging) return; dragging=false;
     if(Math.round(cur)===Math.round(startPos)) return;
-    try{ await updateDoc(doc(db,PHOTO_COL,key), {pos:Math.round(cur)}); }catch(e){ toast('위치 저장 실패: '+e.message, true); }
+    const field = key==='family' && isWideScreen() ? 'posWide' : 'pos';
+    try{ await updateDoc(doc(db,PHOTO_COL,key), {[field]:Math.round(cur)}); }catch(e){ toast('위치 저장 실패: '+e.message, true); }
   };
   el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
 }
 bindDragPos('phFamPrev','family'); bindDragPos('phBgPrev','background');
+window.setFamFit = async function(mode){
+  const f=window.familyPhotos.family; if(!f||!f.data) return;
+  try{ await updateDoc(doc(db,PHOTO_COL,'family'), {fitWide:mode}); }
+  catch(e){ toast('저장 실패: '+e.message, true); }
+};
 // ── 사진 줄이기 ──
 function loadImage(file){
   return new Promise((res,rej)=>{ const url=URL.createObjectURL(file); const img=new Image();
@@ -1943,6 +1977,7 @@ window.onPhotoFile = async function(input){
     if(!data){ toast('사진이 너무 커서 저장하지 못했습니다', true); return; }
     const prev=window.familyPhotos[target]||{};
     const payload={data, pos:50, updatedAt:serverTimestamp(), updatedBy:window.currentMember||null};
+    if(target==='family' && prev.fitWide) payload.fitWide=prev.fitWide;
     if(target==='background'){ payload.lum=imageLuminance(img); payload.dim=prev.dim??45; payload.glass=prev.glass??60; }
     await setDoc(doc(db,PHOTO_COL,target), payload);
     if(target==='family') localStorage.setItem('fc_photoFold','0');

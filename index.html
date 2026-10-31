@@ -34,6 +34,12 @@ body.has-bg{--surface:rgba(14,17,26,var(--glass,.6))}
 body.has-bg .panel,body.has-bg .sidebar{background:rgba(14,17,26,var(--glass,.6))}
 body.has-bg .cal-label{background:rgba(20,23,34,calc(var(--glass,.6) + .12))}
 body.has-bg .cal-grid{background:rgba(255,255,255,.08)}
+/* 사진 위에서도 비치지 않게: 색이 들어간 칸은 카드 바탕 위에 색을 얹는다 */
+body.has-bg .cal-cell.holiday{background:linear-gradient(rgba(255,107,129,.13),rgba(255,107,129,.13)),rgba(14,17,26,var(--glass,.6))}
+body.has-bg .cal-cell.today,body.has-bg .cal-cell.holiday.today{background:linear-gradient(rgba(111,157,255,.2),rgba(111,157,255,.2)),rgba(14,17,26,var(--glass,.6))}
+body.has-bg .cal-cell:hover{background:linear-gradient(var(--accent-light),var(--accent-light)),rgba(14,17,26,var(--glass,.6))}
+body.has-bg .cal-cell.other{opacity:1}
+body.has-bg .cal-cell.other>*{opacity:.35}
 body.has-bg .filter-chip,body.has-bg .cal-nav button,body.has-bg .side-link{background:rgba(14,17,26,.6)}
 .fam-photo{position:relative;height:300px;border-radius:18px;overflow:hidden;margin-bottom:16px;border:1px solid var(--border2);box-shadow:var(--shadow-md);background:#1a1d27 center/cover no-repeat;transition:height .2s}
 .fam-photo::after{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,rgba(6,8,14,.45),transparent 45%),linear-gradient(180deg,transparent 55%,rgba(6,8,14,.55))}

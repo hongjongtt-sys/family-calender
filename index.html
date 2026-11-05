@@ -312,6 +312,32 @@ header{background:rgba(11,13,18,.72);backdrop-filter:blur(10px);-webkit-backdrop
 ::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
 
+/* 사진 자르기 */
+#cropOverlay{z-index:260}
+#cropOverlay .modal{width:560px}
+.crop-wrap{width:100%;display:flex;justify-content:center;margin:2px 0 10px}
+.crop-stage{position:relative;touch-action:none;user-select:none;-webkit-user-select:none;border-radius:10px;overflow:hidden;background:#0b0d12}
+.crop-stage canvas{display:block;width:100%;height:100%;pointer-events:none}
+.crop-box{position:absolute;box-shadow:0 0 0 9999px rgba(5,7,12,.6);outline:2px solid #fff;outline-offset:-1px;cursor:move;touch-action:none;
+  background-image:linear-gradient(90deg,transparent calc(33.33% - .5px),rgba(255,255,255,.35) calc(33.33% - .5px),rgba(255,255,255,.35) calc(33.33% + .5px),transparent calc(33.33% + .5px),transparent calc(66.66% - .5px),rgba(255,255,255,.35) calc(66.66% - .5px),rgba(255,255,255,.35) calc(66.66% + .5px),transparent calc(66.66% + .5px)),
+  linear-gradient(transparent calc(33.33% - .5px),rgba(255,255,255,.35) calc(33.33% - .5px),rgba(255,255,255,.35) calc(33.33% + .5px),transparent calc(33.33% + .5px),transparent calc(66.66% - .5px),rgba(255,255,255,.35) calc(66.66% - .5px),rgba(255,255,255,.35) calc(66.66% + .5px),transparent calc(66.66% + .5px))}
+.crop-box.round{border-radius:50%;outline:none;border:2px solid #fff;background-image:none}
+.crop-h{position:absolute;width:16px;height:16px;background:#fff;border-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,.45);touch-action:none}
+.crop-h::after{content:'';position:absolute;inset:-12px}
+.crop-h[data-h=nw]{left:-2px;top:-2px;cursor:nwse-resize}.crop-h[data-h=ne]{right:-2px;top:-2px;cursor:nesw-resize}
+.crop-h[data-h=sw]{left:-2px;bottom:-2px;cursor:nesw-resize}.crop-h[data-h=se]{right:-2px;bottom:-2px;cursor:nwse-resize}
+.crop-h[data-h=n],.crop-h[data-h=s]{left:50%;width:26px;height:8px;margin-left:-13px;cursor:ns-resize}
+.crop-h[data-h=n]{top:-2px}.crop-h[data-h=s]{bottom:-2px}
+.crop-h[data-h=e],.crop-h[data-h=w]{top:50%;width:8px;height:26px;margin-top:-13px;cursor:ew-resize}
+.crop-h[data-h=w]{left:-2px}.crop-h[data-h=e]{right:-2px}
+.crop-box.sq .crop-h[data-h=n],.crop-box.sq .crop-h[data-h=s],.crop-box.sq .crop-h[data-h=e],.crop-box.sq .crop-h[data-h=w]{display:none}
+.crop-box.round .crop-h[data-h=nw]{left:calc(14.6% - 8px);top:calc(14.6% - 8px)}.crop-box.round .crop-h[data-h=ne]{right:calc(14.6% - 8px);top:calc(14.6% - 8px)}
+.crop-box.round .crop-h[data-h=sw]{left:calc(14.6% - 8px);bottom:calc(14.6% - 8px)}.crop-box.round .crop-h[data-h=se]{right:calc(14.6% - 8px);bottom:calc(14.6% - 8px)}
+.crop-info{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:var(--text-dim);margin-bottom:14px;line-height:1.5}
+.crop-info b{font-weight:600;color:var(--text-muted);white-space:nowrap}
+.crop-btns{display:flex;gap:8px;flex-wrap:wrap}
+.crop-btns .btn-primary{flex:1;min-width:110px}
+
 @media (max-width:640px){
   header{padding:0 12px}
   .wrap{padding:14px 10px 50px}
@@ -617,6 +643,7 @@ header{background:rgba(11,13,18,.72);backdrop-filter:blur(10px);-webkit-backdrop
       <button class="btn btn-ghost btn-sm" style="width:100%;margin:2px 0 14px;border:1px dashed var(--border2)" onclick="addAnniv()">+ 기념일 추가</button>
       <div class="ph-row">
         <button class="btn btn-primary" style="flex:1" onclick="pickPhoto('family')">📷 사진 바꾸기</button>
+        <button class="btn btn-ghost" id="phFamCrop" onclick="recropPhoto('family')">✂️ 자르기</button>
         <button class="btn btn-danger" id="phFamDel" onclick="deletePhoto('family')">삭제</button>
       </div>
       <div class="ph-note">이름과 날짜를 넣으면 오늘이 며칠째인지 자동으로 계산됩니다(그날이 1일째). 미리보기를 위아래로 끌면 보이는 위치가 바뀌고, 컴퓨터와 폰은 위치를 따로 기억합니다. 세로 사진은 컴퓨터에서 '사진 전체 보이기'를 추천해요. 큰 사진은 자동으로 줄여서 저장합니다.<br>사진은 가족 달력의 Firebase에만 저장되고 공개 저장소(GitHub)에는 올라가지 않습니다.</div>
@@ -627,9 +654,30 @@ header{background:rgba(11,13,18,.72);backdrop-filter:blur(10px);-webkit-backdrop
       <div class="ph-slider"><span>카드 진하기</span><input type="range" min="10" max="95" id="bgGlassIn" oninput="bgSlider()" onchange="saveBgSettings()"><b id="bgGlassV"></b></div>
       <div class="ph-row" style="margin-top:14px">
         <button class="btn btn-primary" style="flex:1" onclick="pickPhoto('background')">📷 사진 바꾸기</button>
+        <button class="btn btn-ghost" id="phBgCrop" onclick="recropPhoto('background')">✂️ 자르기</button>
         <button class="btn btn-danger" id="phBgDel" onclick="deletePhoto('background')">삭제</button>
       </div>
       <div class="ph-note">배경 사진은 온 가족 화면에 똑같이 보입니다. 사진이 밝으면 글씨가 잘 보이도록 자동으로 조금 더 어둡게 합니다.<br>사진은 가족 달력의 Firebase에만 저장되고 공개 저장소(GitHub)에는 올라가지 않습니다.</div>
+    </div>
+  </div>
+</div>
+<!-- 사진 자르기 -->
+<div class="overlay" id="cropOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="cropTitle">✂️ 사진 자르기</div>
+      <button class="modal-close" onclick="cropDone(null)" title="취소">✕</button>
+    </div>
+    <div class="crop-wrap" id="cropWrap">
+      <div class="crop-stage" id="cropStage"><canvas id="cropImg"></canvas>
+        <div class="crop-box" id="cropBox"><i class="crop-h" data-h="nw"></i><i class="crop-h" data-h="n"></i><i class="crop-h" data-h="ne"></i><i class="crop-h" data-h="e"></i><i class="crop-h" data-h="se"></i><i class="crop-h" data-h="s"></i><i class="crop-h" data-h="sw"></i><i class="crop-h" data-h="w"></i></div>
+      </div>
+    </div>
+    <div class="crop-info"><span id="cropHelp">모서리나 변을 끌면 크기가, 안쪽을 끌면 위치가 바뀌어요.</span><b id="cropSize"></b></div>
+    <div class="crop-btns">
+      <button class="btn btn-ghost" id="cropSkipBtn" onclick="cropSkip()">자르지 않고 그대로</button>
+      <button class="btn btn-ghost" onclick="cropReset()">처음으로</button>
+      <button class="btn btn-primary" onclick="cropApply()">✂️ 자르기 적용</button>
     </div>
   </div>
 </div>
@@ -1761,6 +1809,7 @@ window.deleteLink = async function(id){
 
 document.addEventListener('keydown', e=>{
   if(e.key==='Escape'){
+    if(document.getElementById('cropOverlay').classList.contains('open')){ cropDone(null); return; }
     if(window.memoEditing||window.todoEditing) return;
     closeEventModal(); closeMemberModal(); closeWhoModal(); closeDayModal(); closeHolidayModal(); closeLinksPopup();
   }
@@ -1866,6 +1915,7 @@ function refreshPhotoModal(){
   }
   else { fp.style.backgroundImage=''; fp.innerHTML='아직 가족사진이 없어요.<br>아래 사진 바꾸기로 올려 주세요'; }
   document.getElementById('phFamDel').style.display = f&&f.data ? '' : 'none';
+  document.getElementById('phFamCrop').style.display = f&&f.data ? '' : 'none';
   if(!document.activeElement || !document.activeElement.closest('#anvList')) renderAnnivRows();
   const bp=document.getElementById('phBgPrev');
   const dim=b?.dim??45, glass=b?.glass??60;
@@ -1876,6 +1926,7 @@ function refreshPhotoModal(){
     bp.innerHTML=`<span class="tip">위아래로 끌어서 위치 조절</span><div class="glass-demo" style="background:rgba(14,17,26,${glass/100})">다가오는 일정</div>`;
   } else { bp.style.backgroundImage=''; bp.innerHTML='아직 배경 사진이 없어요.<br>풍경 사진을 추천해요'; }
   document.getElementById('phBgDel').style.display = b&&b.data ? '' : 'none';
+  document.getElementById('phBgCrop').style.display = b&&b.data ? '' : 'none';
   bgSlider(true);
 }
 // ── 기념일 ──
@@ -1950,6 +2001,96 @@ window.setFamFit = async function(mode){
   try{ await updateDoc(doc(db,PHOTO_COL,'family'), {fitWide:mode}); }
   catch(e){ toast('저장 실패: '+e.message, true); }
 };
+// ── 사진 자르기: 고른 사진에서 남길 부분을 네모 틀로 정한다 ──
+// cropOpen(img,{title,square,round,recrop}) → 잘린 canvas / 그대로면 img / 취소면 null
+const CROP={};
+function cropOpen(img,opt){
+  opt=opt||{};
+  return new Promise(res=>{
+    if(CROP.res) CROP.res(null);
+    CROP.img=img; CROP.W=img.naturalWidth||img.width; CROP.H=img.naturalHeight||img.height;
+    CROP.sq=!!opt.square; CROP.recrop=!!opt.recrop; CROP.res=res;
+    document.getElementById('cropTitle').textContent='✂️ '+(opt.title||'사진 자르기');
+    document.getElementById('cropSkipBtn').textContent=CROP.recrop?'취소':'자르지 않고 그대로';
+    document.getElementById('cropHelp').textContent=CROP.sq?'모서리를 끌면 크기가, 안쪽을 끌면 위치가 바뀌어요.':'모서리나 변을 끌면 크기가, 안쪽을 끌면 위치가 바뀌어요.';
+    const box=document.getElementById('cropBox');
+    box.classList.toggle('sq',CROP.sq); box.classList.toggle('round',!!opt.round);
+    const cv=document.getElementById('cropImg'), r=Math.min(1,1400/Math.max(CROP.W,CROP.H));
+    cv.width=Math.round(CROP.W*r); cv.height=Math.round(CROP.H*r); cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
+    document.getElementById('cropOverlay').classList.add('open');
+    requestAnimationFrame(()=>{ cropLayout(); window.cropReset(); });
+  });
+}
+function cropLayout(){
+  if(!CROP.res) return;
+  const wrapW=document.getElementById('cropWrap').clientWidth||300;
+  const maxH=Math.max(200,Math.min(window.innerHeight*0.58,560));
+  let w=wrapW, h=w*CROP.H/CROP.W;
+  if(h>maxH){ h=maxH; w=h*CROP.W/CROP.H; }
+  const st=document.getElementById('cropStage'); st.style.width=Math.round(w)+'px'; st.style.height=Math.round(h)+'px';
+  CROP.s=w/CROP.W; cropDraw();
+}
+function cropDraw(){
+  const b=CROP.box, s=CROP.s, el=document.getElementById('cropBox'); if(!b) return;
+  el.style.left=(b.x*s)+'px'; el.style.top=(b.y*s)+'px'; el.style.width=(b.w*s)+'px'; el.style.height=(b.h*s)+'px';
+  document.getElementById('cropSize').textContent=Math.round(b.w)+' × '+Math.round(b.h);
+}
+window.cropReset=function(){
+  const W=CROP.W,H=CROP.H;
+  if(CROP.sq){ const d=Math.min(W,H); CROP.box={x:(W-d)/2,y:(H-d)/2,w:d,h:d}; }
+  else CROP.box={x:0,y:0,w:W,h:H};
+  cropDraw();
+};
+(function(){
+  const box=document.getElementById('cropBox'); let st=null;
+  box.addEventListener('pointerdown',e=>{
+    e.preventDefault();
+    st={h:e.target.dataset.h||'move',x:e.clientX,y:e.clientY,b:{...CROP.box}};
+    box.setPointerCapture(e.pointerId);
+  });
+  box.addEventListener('pointermove',e=>{
+    if(!st) return;
+    const W=CROP.W,H=CROP.H,b0=st.b,dx=(e.clientX-st.x)/CROP.s,dy=(e.clientY-st.y)/CROP.s;
+    const min=Math.max(24,Math.min(W,H)*0.04), cl=(v,a,z)=>Math.max(a,Math.min(z,v)), h=st.h;
+    let b;
+    if(h==='move') b={...b0,x:cl(b0.x+dx,0,W-b0.w),y:cl(b0.y+dy,0,H-b0.h)};
+    else if(CROP.sq){
+      const sx=h.includes('e')?1:-1, sy=h.includes('s')?1:-1;
+      const ax=sx>0?b0.x:b0.x+b0.w, ay=sy>0?b0.y:b0.y+b0.h;
+      const lim=Math.min(sx>0?W-ax:ax, sy>0?H-ay:ay);
+      const d=cl(b0.w+Math.max(sx*dx,sy*dy),min,lim);
+      b={x:sx>0?ax:ax-d,y:sy>0?ay:ay-d,w:d,h:d};
+    } else {
+      let l=b0.x,t=b0.y,r=b0.x+b0.w,bt=b0.y+b0.h;
+      if(h.includes('w')) l=cl(l+dx,0,r-min);
+      if(h.includes('e')) r=cl(r+dx,l+min,W);
+      if(h.includes('n')) t=cl(t+dy,0,bt-min);
+      if(h.includes('s')) bt=cl(bt+dy,t+min,H);
+      b={x:l,y:t,w:r-l,h:bt-t};
+    }
+    CROP.box=b; cropDraw();
+  });
+  const end=()=>{ st=null; };
+  box.addEventListener('pointerup',end); box.addEventListener('pointercancel',end);
+  window.addEventListener('resize',()=>{ if(document.getElementById('cropOverlay').classList.contains('open')) cropLayout(); });
+})();
+window.cropDone=function(v){
+  document.getElementById('cropOverlay').classList.remove('open');
+  const cv=document.getElementById('cropImg'); cv.width=cv.height=1;
+  const r=CROP.res; CROP.res=null; CROP.img=null; if(r) r(v);
+};
+window.cropSkip=function(){ window.cropDone(CROP.recrop?null:CROP.img); };
+window.cropApply=function(){
+  const b=CROP.box, x=Math.round(b.x), y=Math.round(b.y);
+  const w=Math.min(CROP.W-x,Math.round(b.w)), h=Math.min(CROP.H-y,Math.round(b.h));
+  if(x===0&&y===0&&w>=CROP.W&&h>=CROP.H){ window.cropDone(CROP.recrop?null:CROP.img); return; }
+  const c=document.createElement('canvas'); c.width=w; c.height=h;
+  c.getContext('2d').drawImage(CROP.img,x,y,w,h,0,0,w,h);
+  window.cropDone(c);
+};
+function imgFromData(data){
+  return new Promise((res,rej)=>{ const im=new Image(); im.onload=()=>res(im); im.onerror=()=>rej(new Error('사진을 읽지 못했습니다')); im.src=data; });
+}
 // ── 사진 줄이기 ──
 function loadImage(file){
   return new Promise((res,rej)=>{ const url=URL.createObjectURL(file); const img=new Image();
@@ -1958,8 +2099,9 @@ function loadImage(file){
 function shrinkToJpeg(img, maxSide){
   let side=maxSide, q=.85, out='';
   for(let tries=0; tries<14; tries++){
-    const r=Math.min(1, side/Math.max(img.naturalWidth,img.naturalHeight));
-    const c=document.createElement('canvas'); c.width=Math.round(img.naturalWidth*r); c.height=Math.round(img.naturalHeight*r);
+    const iw=img.naturalWidth||img.width, ih=img.naturalHeight||img.height;
+    const r=Math.min(1, side/Math.max(iw,ih));
+    const c=document.createElement('canvas'); c.width=Math.round(iw*r); c.height=Math.round(ih*r);
     c.getContext('2d').drawImage(img,0,0,c.width,c.height);
     out=c.toDataURL('image/jpeg', q);
     if(out.length<=PHOTO_MAX_B64) return out;
@@ -1976,9 +2118,10 @@ function imageLuminance(img){
 window.pickPhoto = function(target){ window.photoTarget=target; const i=document.getElementById('photoFileIn'); i.value=''; i.click(); };
 window.onPhotoFile = async function(input){
   const file=input.files&&input.files[0]; const target=window.photoTarget; if(!file||!target) return;
-  toast('사진을 줄이는 중…');
   try{
-    const img=await loadImage(file);
+    const img=await cropOpen(await loadImage(file), {title: target==='background'?'배경 사진 자르기':'가족사진 자르기'});
+    if(!img) return;
+    toast('사진을 줄이는 중…');
     const data=shrinkToJpeg(img, target==='background'?1920:1600);
     if(!data){ toast('사진이 너무 커서 저장하지 못했습니다', true); return; }
     const prev=window.familyPhotos[target]||{};
@@ -1990,6 +2133,21 @@ window.onPhotoFile = async function(input){
     toast('✅ 사진을 바꿨습니다');
   }catch(e){ toast('사진 저장 실패: '+e.message, true); }
 };
+// 올려 둔 사진의 여백 자르기 (자른 사진으로 바꾸고 위치는 가운데로)
+window.recropPhoto = async function(target){
+  const p=window.familyPhotos[target]; if(!p||!p.data) return;
+  try{
+    const img=await cropOpen(await imgFromData(p.data), {title: target==='background'?'배경 사진 자르기':'가족사진 자르기', recrop:true});
+    if(!img) return;
+    const data=shrinkToJpeg(img, target==='background'?1920:1600);
+    if(!data){ toast('사진이 너무 커서 저장하지 못했습니다', true); return; }
+    const upd={data, pos:50, updatedAt:serverTimestamp(), updatedBy:window.currentMember||null};
+    if(p.posWide!=null) upd.posWide=50;
+    if(target==='background') upd.lum=imageLuminance(img);
+    await updateDoc(doc(db,PHOTO_COL,target), upd);
+    toast('✅ 사진을 잘랐습니다');
+  }catch(e){ toast('자르기 실패: '+e.message, true); }
+};
 window.deletePhoto = async function(target){
   if(!confirm(target==='family'?'가족사진을 지울까요?\n(기념일은 그대로 남습니다)':'배경 사진을 지울까요?')) return;
   try{ await deleteDoc(doc(db,PHOTO_COL,target)); toast('🗑 사진을 지웠습니다'); }
@@ -2000,9 +2158,11 @@ window.pickMemberPhoto = function(id){ window.memberPhotoId=id; const i=document
 window.onMemberPhotoFile = async function(input){
   const file=input.files&&input.files[0]; const id=window.memberPhotoId; if(!file||!id) return;
   try{
-    const img=await loadImage(file);
-    const s=Math.min(img.naturalWidth,img.naturalHeight), c=document.createElement('canvas'); c.width=c.height=200;
-    c.getContext('2d').drawImage(img,(img.naturalWidth-s)/2,(img.naturalHeight-s)/2,s,s,0,0,200,200);
+    const img=await cropOpen(await loadImage(file), {title:'프로필 사진 자르기', square:true, round:true});
+    if(!img) return;
+    const iw=img.naturalWidth||img.width, ih=img.naturalHeight||img.height;
+    const s=Math.min(iw,ih), c=document.createElement('canvas'); c.width=c.height=200;
+    c.getContext('2d').drawImage(img,(iw-s)/2,(ih-s)/2,s,s,0,0,200,200);
     await updateDoc(doc(db,MEMBER_COL,id), {photo:c.toDataURL('image/jpeg',.82)});
     toast('✅ 프로필 사진을 바꿨습니다');
   }catch(e){ toast('프로필 사진 저장 실패: '+e.message, true); }
